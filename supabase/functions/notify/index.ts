@@ -26,6 +26,7 @@ const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Max-Age": "86400",
 };
 
 // Enviar notificación push usando @negrel/webpush
@@ -40,7 +41,12 @@ async function sendNotification(subscription: any, payload: string) {
 
 Deno.serve(async (req) => {
   // Pre-flight CORS
-  if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: CORS });
+  if (req.method === "OPTIONS") {
+    return new Response(null, { 
+      status: 204, 
+      headers: CORS 
+    });
+  }
 
   try {
     const body = await req.json();
