@@ -15,6 +15,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sendNotification as sendWebPush } from "jsr:@negrel/webpush";
 
 const VAPID_PUBLIC  = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY")!;
@@ -27,21 +28,14 @@ const CORS = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-// Función para enviar notificación push
+// Enviar notificación push usando @negrel/webpush
 async function sendNotification(subscription: any, payload: string) {
-  const endpoint = subscription.endpoint;
-
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: payload,
+  await sendWebPush({
+    subscription: subscription,
+    serverPublicKey: VAPID_PUBLIC,
+    serverPrivateKey: VAPID_PRIVATE,
+    payload: payload,
   });
-
-  if (!response.ok) {
-    throw new Error(`Push failed: ${response.status}`);
-  }
 }
 
 Deno.serve(async (req) => {

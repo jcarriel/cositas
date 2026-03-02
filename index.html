@@ -320,6 +320,7 @@ async function initNotifications() {
   }
   updateNotifBtn();
   if (notifPermission) {
+    await new Promise(resolve => setTimeout(resolve, 500));
     await subscribeToPush();
     checkMorningNotif();
     triggerDailyPush();
@@ -336,12 +337,18 @@ function urlBase64ToUint8Array(b64) {
 
 // Registra la suscripción push y la guarda en Supabase
 async function subscribeToPush() {
-  if (!VAPID_PUBLIC_KEY || !('PushManager' in window)) return;
+  if (!VAPID_PUBLIC_KEY || !('PushManager' in window) || !('serviceWorker' in navigator)) return;
   try {
-    const reg = await navigator.serviceWorker.ready;
-    let sub = await reg.pushManager.getSubscription();
+    // Registrar el service worker si no está registrado
+    let reg = await navigator.serviceWorker.getRegistrations();
+    if (!reg || reg.length === 0) {
+      reg = [await navigator.serviceWorker.register('./sw.js')];
+    }
+    
+    const registration = reg[0];
+    let sub = await registration.pushManager.getSubscription();
     if (!sub) {
-      sub = await reg.pushManager.subscribe({
+      sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
       });
