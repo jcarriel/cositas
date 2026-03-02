@@ -15,7 +15,6 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendNotification } from "jsr:@negrel/webpush";
 
 const VAPID_PUBLIC  = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY")!;
@@ -29,6 +28,21 @@ const CORS = {
   "Access-Control-Max-Age": "86400",
 };
 
+// Enviar notificación push simple (sin encriptación para testing)
+async function sendNotification(subscription: any, payload: string) {
+  const response = await fetch(subscription.endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: payload,
+  });
+
+  if (response.status !== 201 && response.status !== 200) {
+    throw new Error(`Push failed: ${response.status}`);
+  }
+}
+
 Deno.serve(async (req) => {
   // Pre-flight CORS
   if (req.method === "OPTIONS") {
@@ -40,6 +54,15 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
+    
+    // ── Validar acción ──────────────────────────────────
+    if (!body.action || (body.action !== "new-task" && body.action !== "daily-summary")) {
+      return new Response(JSON.stringify({ error: "Acción desconocida" }), {
+        status: 400, 
+        headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(SB_URL, SB_SERVICE);
 
     // ── Obtener suscripciones almacenadas ──────────────
@@ -86,23 +109,13 @@ Deno.serve(async (req) => {
         ? `${n} tarea${n !== 1 ? "s" : ""} pendiente${n !== 1 ? "s" : ""} · ⚠️ ${urgent} vence${urgent !== 1 ? "n" : ""} hoy`
         : `${n} tarea${n !== 1 ? "s" : ""} pendiente${n !== 1 ? "s" : ""}`;
       tag       = "daily-summary";
-
-    } else {
-      return new Response(JSON.stringify({ error: "Acción desconocida" }), {
-        status: 400, headers: CORS,
-      });
     }
 
     const payload = JSON.stringify({ title, body: notifBody, tag });
 
     // ── Enviar push a todos los suscriptores ───────────
     const results = await Promise.allSettled(
-      subs.map(({ subscription }) => sendNotification({
-        subscription,
-        serverPublicKey: VAPID_PUBLIC,
-        serverPrivateKey: VAPID_PRIVATE,
-        payload,
-      }))
+      subs.map(({ subscription }) => sendNotification(subscription, payload))
     );
 
     // Limpiar suscripciones expiradas / inválidas
