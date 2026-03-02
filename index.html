@@ -571,7 +571,14 @@ async function saveEdit() {
 }
 
 // ── POLLING ────────────────────────────────────
-setInterval(() => loadTasks(true), 12000);
+let lastLoadTime = 0;
+setInterval(async () => {
+  const now = Date.now();
+  if (now - lastLoadTime > 900000) {
+    lastLoadTime = now;
+    await loadTasks(true);
+  }
+}, 900000);
 
 // ── RENDER ─────────────────────────────────────
 function filtered() {
