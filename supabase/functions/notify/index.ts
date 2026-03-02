@@ -14,7 +14,6 @@
  * Generar claves VAPID: npx web-push generate-vapid-keys
  */
 
-import webpush from "https://esm.sh/web-push@3.6.7";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const VAPID_PUBLIC  = Deno.env.get("VAPID_PUBLIC_KEY")!;
@@ -25,9 +24,25 @@ const SB_SERVICE    = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-webpush.setVapidDetails("mailto:cositas@app.local", VAPID_PUBLIC, VAPID_PRIVATE);
+// Función para enviar notificación push
+async function sendNotification(subscription: any, payload: string) {
+  const endpoint = subscription.endpoint;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: payload,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Push failed: ${response.status}`);
+  }
+}
 
 Deno.serve(async (req) => {
   // Pre-flight CORS
@@ -92,7 +107,7 @@ Deno.serve(async (req) => {
 
     // ── Enviar push a todos los suscriptores ───────────
     const results = await Promise.allSettled(
-      subs.map(({ subscription }) => webpush.sendNotification(subscription, payload))
+      subs.map(({ subscription }) => sendNotification(subscription, payload))
     );
 
     // Limpiar suscripciones expiradas / inválidas
