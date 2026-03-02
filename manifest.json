@@ -1,6 +1,6 @@
 {
-  "name": "MiLista",
-  "short_name": "MiLista",
+  "name": "Cositas",
+  "short_name": "Cositas",
   "description": "Lista de tareas compartida en tiempo real",
   "start_url": "./index.html",
   "display": "standalone",
