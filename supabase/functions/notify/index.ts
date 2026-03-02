@@ -31,7 +31,7 @@ webpush.setVapidDetails("mailto:cositas@app.local", VAPID_PUBLIC, VAPID_PRIVATE)
 
 Deno.serve(async (req) => {
   // Pre-flight CORS
-  if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+  if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: CORS });
 
   try {
     const body = await req.json();
