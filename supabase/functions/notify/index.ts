@@ -15,7 +15,7 @@
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { sendNotification as sendWebPush } from "jsr:@negrel/webpush";
+import { sendNotification } from "jsr:@negrel/webpush";
 
 const VAPID_PUBLIC  = Deno.env.get("VAPID_PUBLIC_KEY")!;
 const VAPID_PRIVATE = Deno.env.get("VAPID_PRIVATE_KEY")!;
@@ -28,16 +28,6 @@ const CORS = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Max-Age": "86400",
 };
-
-// Enviar notificación push usando @negrel/webpush
-async function sendNotification(subscription: any, payload: string) {
-  await sendWebPush({
-    subscription: subscription,
-    serverPublicKey: VAPID_PUBLIC,
-    serverPrivateKey: VAPID_PRIVATE,
-    payload: payload,
-  });
-}
 
 Deno.serve(async (req) => {
   // Pre-flight CORS
@@ -107,7 +97,12 @@ Deno.serve(async (req) => {
 
     // ── Enviar push a todos los suscriptores ───────────
     const results = await Promise.allSettled(
-      subs.map(({ subscription }) => sendNotification(subscription, payload))
+      subs.map(({ subscription }) => sendNotification({
+        subscription,
+        serverPublicKey: VAPID_PUBLIC,
+        serverPrivateKey: VAPID_PRIVATE,
+        payload,
+      }))
     );
 
     // Limpiar suscripciones expiradas / inválidas

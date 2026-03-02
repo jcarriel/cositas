@@ -354,11 +354,15 @@ async function subscribeToPush() {
       });
     }
     // Upsert en Supabase (ignora duplicados)
-    await sb('push_subscriptions', {
-      method: 'POST',
-      body: JSON.stringify({ subscription: sub.toJSON(), user_name: userName }),
-      headers: { 'Prefer': 'resolution=merge-duplicates' }
-    });
+    try {
+      await sb('push_subscriptions', {
+        method: 'POST',
+        body: JSON.stringify({ subscription: sub.toJSON(), user_name: userName })
+      });
+    } catch (err) {
+      // Si ya existe, ignorar el error
+      if (err.code !== '23505') throw err;
+    }
   } catch (e) { console.warn('Push subscription:', e); }
 }
 
